@@ -1,0 +1,287 @@
+#! /usr/bin/env python3
+
+from argparse import ArgumentParser
+from pathlib import Path
+from json import load, dump
+from datetime import datetime, timedelta
+
+basePath = Path(__file__).parent
+
+# Parse arguments
+about = 'Prints daily Bible reading using a Chronological 1 year plan'
+
+epilog = 'Be strong and courageous. Do not fear or be in dread of them, for it is the Lord your God who goes with you. He will not leave you or forsake you. - Deuteronomy 31:6'
+
+parser = ArgumentParser(prog='bible', description=about, epilog=epilog)
+
+parser.add_argument('-l',
+                    '--links',
+                    action='store_true',
+                    help='Print study links')
+
+parser.add_argument('-stats',
+                    action='store_true',
+                    help='Prints reading progress')
+
+nav = parser.add_mutually_exclusive_group()
+
+nav.add_argument('-p',
+                 '--prev',
+                 type=int,
+                 nargs='?',
+                 const=1,
+                 default=None,
+                 help='Print previous N days readings. N defaults to 1',
+                 dest='prev',
+                 metavar='N')
+
+nav.add_argument('-n',
+                 '--next',
+                 type=int,
+                 nargs='?',
+                 const=1,
+                 default=None,
+                 help='Print next N days readings. N defaults to 1',
+                 dest='next',
+                 metavar='N')
+
+nav.add_argument('-s',
+                 '--start',
+                 help='Create new plan',
+                 action='store_true',
+                 dest='start')
+
+nav.add_argument('-c',
+                 '--continue',
+                 help='Continue reading from specified date',
+                 nargs=3,
+                 type=int,
+                 dest='pivot',
+                 metavar=('YYYY', 'MM', 'DD'))
+
+nav.add_argument('-d',
+                 '--date',
+                 help='Get reading for specified date',
+                 nargs=3,
+                 type=int,
+                 dest='date',
+                 metavar=('YYYY', 'MM', 'DD'))
+
+args = parser.parse_args()
+
+
+def print_reading(dt: datetime, data: str):
+    """Prints the bible reading for the date dt and
+    study links if option specified
+    """
+
+    out = dt.strftime('%a, %d %b %Y: ') + data + '\n'
+
+    if args.links:
+        out += '\nStudy links\n'
+
+        if not ';' in data:
+            return print(out + parse_reading(data))
+
+        for reading in data.split(';'):
+            out += parse_reading(reading)
+
+    print(out)
+
+
+def parse_reading(reading: str):
+    """Parses a bible reading into book and chapter(s) and returns url links
+    to https://bible-studys.org for each chapter of the book.
+
+    Example
+    parse_reading('Genesis 1-3')
+
+    outputs:
+    https://bible-studys.org/genesis-chapter-1
+    https://bible-studys.org/genesis-chapter-2
+    https://bible-studys.org/genesis-chapter-3
+    """
+
+    reading = reading.lower()
+
+    if reading[0].isdigit():
+        # '1 John 1-5' -> '1-john 1-5'
+        reading = reading.replace(' ', '-', 1)
+
+    reading_lst = reading.split(' ')
+    length = len(reading_lst)
+
+    if length == 1:
+        # books like 'Philemon' or '2-John' or '3-John'
+        # have only a single chapter
+        return generate_link(reading_lst[0], 1)
+
+    if reading_lst[1].isdigit():
+        # 'Psalm 91'
+        return generate_link(*reading_lst)
+
+    book, ch = reading_lst
+
+    if ':' in ch:
+        # '2-Samuel 5:1-10' - discard the verses. Only chapter is required
+        return generate_link(book, ch.split(':')[0])
+
+    if '-' in ch:
+        # 'Genesis 1-3'
+        # split 1-3 by '-' and cast to integers
+        st, end = map(int, ch.split('-'))
+        out = ''
+
+        for i in range(st, end + 1):
+            out += generate_link(book, i)
+
+        return out
+    return ''
+
+
+def generate_link(book: str, ch: int|str):
+    return f'https://bible-studys.org/{book}-chapter-{ch}\n'
+
+
+json_path = basePath / 'bible.json'
+
+with json_path.open() as f:
+    data = load(f)
+
+today = datetime.now()
+
+start_date = datetime.fromisoformat(data[-1])
+
+if args.stats:
+
+    index = (today - start_date).days
+    pct = round(index / 365 * 100, 2)
+
+    exit(f'{index} days ({pct}%) of plan completed.')
+
+if args.start:
+
+    prompt = input('Start a new Bible plan.\nAre you sure? (Y/N) ')
+
+    if not prompt.upper() == 'Y':
+        exit('Aborted')
+
+    data[-1] = datetime.combine(today, datetime.min.time()).isoformat()
+
+    with json_path.open('w') as f:
+        dump(data, f)
+
+    exit('''Done.
+         For I know the plans I have for you, declares the Lord,
+         plans for welfare and not for evil,
+         to give you a future and a hope.
+                    - Jeremiah 29:11''')
+
+
+if args.pivot:
+
+    y, m, d = args.pivot
+
+    try:
+        continue_from_date = datetime(y, m, d)
+    except ValueError:
+        exit('Date must be in format YYYY MM DD')
+
+    index = (continue_from_date - start_date).days
+
+    if 0 > index > 365:
+        exit('Specified date is out of range')
+
+    prompt = input("Continue reading from {}: {}.\nConfirm (Y/N) ".format(
+        continue_from_date.strftime('%a %b %d %Y'),
+        data[index]
+    ))
+
+    if not prompt.upper() == 'Y':
+        exit('Aborted!')
+
+    data[-1] = (start_date + (today - continue_from_date)).isoformat()
+
+    with json_path.open('w') as f:
+        dump(data, f)
+
+    exit('''Done.
+         Oh, taste and see that the Lord is good!
+         Blessed is the man who takes refuge in him!
+                    - Psalm 34:8''')
+
+
+if args.prev:
+
+    days_back = args.prev + 1
+    dt = (today - timedelta(days_back))
+    index = (dt - start_date).days + 1
+    postfix = '(Today)'
+    text = ''
+
+    if index < 0:
+        days_back = (today - start_date).days
+        exit('Out of range. First Reading was {} ({} days back)'.format(
+            start_date.strftime('%d %b %y'),
+            days_back
+        ))
+
+    if index + days_back > 365:
+        dt = (start_date + timedelta(365 - days_back))
+        index = 365 - days_back
+        postfix = '(Last Reading)'
+
+    for i in range(days_back):
+        dt = (dt + timedelta(1))
+        text += f'{dt.strftime("%a %d %b %Y")}: {data[index]}\n'
+        index += 1
+    exit(f'{text[:-1]} {postfix}')
+
+
+if args.next:
+
+    days_fwd = args.next + 1
+    index = (today - start_date).days
+    dt = today
+    postfix = '(Today)'
+    text = ''
+
+    if index + days_fwd > 365:
+        days_fwd = 365 - index
+
+    if index >= 365:
+        last = (start_date + timedelta(365)).strftime('%d %b %y')
+        exit(f'Out of range. Last reading was {last}')
+
+    for i in range(days_fwd):
+        dt = (today + timedelta(i))
+        text += f'{dt.strftime("%a %d %b %Y")}: {data[index]} {postfix}\n'
+        index += 1
+        postfix = ''
+    exit(text[:-1])
+
+
+if args.date:
+
+    y, m, d = args.date
+    try:
+        dt = datetime(y, m, d)
+    except ValueError:
+        exit("ValueError: Pass date format YYYY MM DD. Use bible -h for help.")
+
+    index = (dt - start_date).days
+
+    try:
+        print_reading(dt, data[index])
+    except IndexError:
+        exit("Date out of range. Use format YYYY MM DD. Use bible -h for help")
+    exit()
+
+# default
+index = (today - start_date).days
+
+if index > 365:
+    last = (start_date + timedelta(365)).strftime('%d %b %y')
+    exit(f"Plan completed on {last}.\nUse 'bible -s' to start a new plan")
+
+print_reading(today, data[index])
