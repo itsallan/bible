@@ -17,12 +17,10 @@ Uses standard library, No dependencies.
 
 The reading plan itself was picked up from [biblestudytools.com](https://www.biblestudytools.com/bible-reading-plan/chronological.html).
 
-If you're not command line savvy, I suggest you register on their site and track your progress there.
-
 ## Installation
-1. Clone the repo.
-2. Open your terminal / command prompt / Powershell.
-3. Navigate to the script folder
+1. Clone or download the repo: `git clone https://github.com/BennyThadikaran/bible.git`
+2. Open your terminal(Linux) or Powershell (Windows).
+3. Navigate to the project folder
 4. For Linux users, make the script executable with ```chmod +x bible```
 4. Execute script as ```./bible```
 
@@ -134,5 +132,3 @@ God who goes with you. He will not leave you or forsake you. - Deuteronomy 31:6
 ```
 
 **For convenience, I have included ```bible-plan.pdf``` that contains the entire 365 days plan**
-
-Each days reading on a seperate line.
