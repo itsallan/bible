@@ -150,6 +150,9 @@ with json_path.open() as f:
 
 today = datetime.now()
 
+if data[-1] == '':
+    exit('No active plan. Run `bible -s` to start a new reading plan')
+
 start_date = datetime.fromisoformat(data[-1])
 
 if args.stats:
