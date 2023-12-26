@@ -2,6 +2,7 @@
 > but on every word that comes out of the mouth of God. - Mathew 4:4**
 
 # Bible
+
 This is a command line python script, i wrote back in 2019 to aid my daily reading of the Holy Bible.
 
 The Holy Bible is not a single book. It a collection of books written at different time periods.
@@ -18,16 +19,21 @@ Uses standard library, No dependencies.
 The reading plan itself was picked up from [biblestudytools.com](https://www.biblestudytools.com/bible-reading-plan/chronological.html).
 
 ## Installation
+
+**Supports Python version >= 3.7**
+
 1. Clone or download the repo: `git clone https://github.com/BennyThadikaran/bible.git`
 2. Open your terminal(Linux) or Powershell (Windows).
 3. Navigate to the project folder
-4. For Linux users, make the script executable with ```chmod +x bible```
-4. Execute script as ```./bible```
+4. For Linux users, make the script executable with `chmod +x bible`
+5. Execute script as `./bible`
 
 ## Usage
-Start a new plan with ```--start``` type 'y' when prompted.
+
+Start a new plan with `-s/--start` type 'y' when prompted.
+
 ```
-$ ./bible --start
+$ ./bible -s
 Start a new Bible plan.
 Are you sure? (Y/N) y
 Done.
@@ -37,20 +43,24 @@ Done.
                     - Jeremiah 29:11
 ```
 
-Now ```./bible``` will print the reading for today.
+Now `./bible` will print the reading for today.
+
 ```
 $ ./bible
 Sun, 19 Mar 2023: Genesis 1-3
 
 ```
 
-To check next days reading, use the ```--next``` option
+To check next days reading, use the `-n/--next` option
+
 ```
-$ ./bible --next
+$ ./bible -n
 Sun 19 Mar 2023: Genesis 1-3 (Today)
 Mon 20 Mar 2023: Genesis 4-7
 ```
-You can also check next several days reading by providing a number like ```--next 3```
+
+You can also check next several days reading by providing a number like `-n 3`
+
 ```
 $ ./bible --next 3
 Sun 19 Mar 2023: Genesis 1-3 (Today)
@@ -59,43 +69,49 @@ Tue 21 Mar 2023: Genesis 8-11
 Wed 22 Mar 2023: Job 1-5
 ```
 
-Similarly you can check the previous day reading with ```--prev```
+Similarly you can check the previous day reading with `-p/--prev`
+
 ```
-$ ./bible --prev 2
+$ ./bible -p 2
 Fri 17 Mar 2023: Job 17-20
 Sat 18 Mar 2023: Job 21-23
 Sun 19 Mar 2023: Job 24-28 (Today)
 ```
 
-To get the reading for a specific date use the ```--date``` option with arguments year, month and date
+To get the reading for a specific date use the `-d/--date` option. Pass an ISO format date (YYYY-MM-DD)
+
 ```
-$ ./bible --date 2013 3 14
+$ ./bible -d 2013-3-14
 Tue, 14 Mar 2023: Job 6-9
 
 ```
 
-To see your reading progress, use ```-stats```
+To see your reading progress, use `-stats`
+
 ```
 $ ./bible -stats
 9 days (2.47%) of plan completed.
 ```
+
 Every once in a while, you might miss several days of reading.
 
 Rather than catching up, you can just continue from the last reading date.
 
-Use the ```--continue``` with arguments year, month and date.
+Use the `-c/--continue` passing an ISO format date (YYYY-MM-DD)
 Type y after confirming the date and reading.
+
 ```
-$ ./bible --continue 2023 3 15
+$ ./bible -c 2023-3-15
 Continue reading from Wed Mar 15 2023: Job 10-13.
 Confirm (Y/N) y
 ```
 
-I like [bible-studys.org](https://bible-studys.org) for their explantations, commentary and historical context. So i added an option to print the direct website link for all books to be read.
+I like [bible-studys.org](https://bible-studys.org) for their explantations, commentary and historical context. So i added an option to print the website link for all readings.
 
-Use ```--link``` on its own or with the ```--date``` option
+Use `-l/--link` on its own or with the `--date` option
+
 ```
-$ ./bible --link
+$ ./bible -l
 Sun, 19 Mar 2023: Genesis 1-3
 
 Study links
@@ -105,7 +121,7 @@ https://bible-studys.org/genesis-chapter-3
 
 ```
 
-**Ofcourse, if you forget these commands, use the ```--help``` option to print all commands.**
+**Ofcourse, if you forget these commands, use the `--help` option to print all commands.**
 
 Notice there are short options just like any linux terminal app.
 
@@ -131,4 +147,4 @@ Be strong and courageous. Do not fear or be in dread of them, for it is the Lord
 God who goes with you. He will not leave you or forsake you. - Deuteronomy 31:6
 ```
 
-**For convenience, I have included ```bible-plan.pdf``` that contains the entire 365 days plan**
+**For convenience, I have included `bible-plan.pdf` that contains the entire 365 days plan**

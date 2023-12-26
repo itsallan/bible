@@ -2,10 +2,11 @@
 
 from argparse import ArgumentParser
 from pathlib import Path
-from json import load, dump
+from json import loads, dumps
 from datetime import datetime, timedelta
+from typing import Union
 
-basePath = Path(__file__).parent
+DIR = Path(__file__).parent
 
 # Parse arguments
 about = 'Prints daily Bible reading using a Chronological 1 year plan'
@@ -53,19 +54,16 @@ nav.add_argument('-s',
 
 nav.add_argument('-c',
                  '--continue',
-                 help='Continue reading from specified date',
-                 nargs=3,
-                 type=int,
+                 help='Continue reading from specified date (ISO date format)',
+                 type=datetime.fromisoformat,
                  dest='pivot',
-                 metavar=('YYYY', 'MM', 'DD'))
+                 metavar='YYYY-MM-DD')
 
 nav.add_argument('-d',
                  '--date',
-                 help='Get reading for specified date',
-                 nargs=3,
-                 type=int,
-                 dest='date',
-                 metavar=('YYYY', 'MM', 'DD'))
+                 help='Get reading for specified date (ISO date format)',
+                 type=datetime.fromisoformat,
+                 metavar='YYYY-MM-DD')
 
 args = parser.parse_args()
 
@@ -75,12 +73,12 @@ def print_reading(dt: datetime, data: str):
     study links if option specified
     """
 
-    out = dt.strftime('%a, %d %b %Y: ') + data + '\n'
+    out = f'{dt:%a, %d %b %Y}: {data}\n'
 
     if args.links:
         out += '\nStudy links\n'
 
-        if not ';' in data:
+        if ';' not in data:
             return print(out + parse_reading(data))
 
         for reading in data.split(';'):
@@ -139,28 +137,15 @@ def parse_reading(reading: str):
     return ''
 
 
-def generate_link(book: str, ch: int|str):
+def generate_link(book: str, ch: Union[int, str]):
     return f'https://bible-studys.org/{book}-chapter-{ch}\n'
 
 
-json_path = basePath / 'bible.json'
+json_path = DIR / 'bible.json'
 
-with json_path.open() as f:
-    data = load(f)
+data = loads(json_path.read_bytes())
 
 today = datetime.now()
-
-if data[-1] == '':
-    exit('No active plan. Run `bible -s` to start a new reading plan')
-
-start_date = datetime.fromisoformat(data[-1])
-
-if args.stats:
-
-    index = (today - start_date).days
-    pct = round(index / 365 * 100, 2)
-
-    exit(f'{index} days ({pct}%) of plan completed.')
 
 if args.start:
 
@@ -171,8 +156,7 @@ if args.start:
 
     data[-1] = datetime.combine(today, datetime.min.time()).isoformat()
 
-    with json_path.open('w') as f:
-        dump(data, f)
+    json_path.write_text(dumps(data))
 
     exit('''Done.
          For I know the plans I have for you, declares the Lord,
@@ -180,39 +164,38 @@ if args.start:
          to give you a future and a hope.
                     - Jeremiah 29:11''')
 
+if data[-1] == '':
+    exit('No active plan. Run `bible -s` to start a new reading plan')
+
+start_date = datetime.fromisoformat(data[-1])
+
+if args.stats:
+
+    count = (today - start_date).days
+
+    exit(f'{count} days ({count / 365:.2%}) of plan completed.')
 
 if args.pivot:
 
-    y, m, d = args.pivot
-
-    try:
-        continue_from_date = datetime(y, m, d)
-    except ValueError:
-        exit('Date must be in format YYYY MM DD')
-
-    index = (continue_from_date - start_date).days
+    index = (args.pivot - start_date).days
 
     if 0 > index > 365:
         exit('Specified date is out of range')
 
     prompt = input("Continue reading from {}: {}.\nConfirm (Y/N) ".format(
-        continue_from_date.strftime('%a %b %d %Y'),
-        data[index]
-    ))
+        args.pivot.strftime('%a %b %d %Y'), data[index]))
 
     if not prompt.upper() == 'Y':
         exit('Aborted!')
 
-    data[-1] = (start_date + (today - continue_from_date)).isoformat()
+    data[-1] = (start_date + (today - args.pivot)).isoformat()
 
-    with json_path.open('w') as f:
-        dump(data, f)
+    json_path.write_text(dumps(data))
 
     exit('''Done.
          Oh, taste and see that the Lord is good!
          Blessed is the man who takes refuge in him!
                     - Psalm 34:8''')
-
 
 if args.prev:
 
@@ -225,9 +208,7 @@ if args.prev:
     if index < 0:
         days_back = (today - start_date).days
         exit('Out of range. First Reading was {} ({} days back)'.format(
-            start_date.strftime('%d %b %y'),
-            days_back
-        ))
+            start_date.strftime('%d %b %y'), days_back))
 
     if index + days_back > 365:
         dt = (start_date + timedelta(365 - days_back))
@@ -236,10 +217,9 @@ if args.prev:
 
     for i in range(days_back):
         dt = (dt + timedelta(1))
-        text += f'{dt.strftime("%a %d %b %Y")}: {data[index]}\n'
+        text += f'{dt:%a %d %b %Y}: {data[index]}\n'
         index += 1
     exit(f'{text[:-1]} {postfix}')
-
 
 if args.next:
 
@@ -258,24 +238,17 @@ if args.next:
 
     for i in range(days_fwd):
         dt = (today + timedelta(i))
-        text += f'{dt.strftime("%a %d %b %Y")}: {data[index]} {postfix}\n'
+        text += f'{dt:%a %d %b %Y"}: {data[index]} {postfix}\n'
         index += 1
         postfix = ''
     exit(text[:-1])
 
-
 if args.date:
 
-    y, m, d = args.date
-    try:
-        dt = datetime(y, m, d)
-    except ValueError:
-        exit("ValueError: Pass date format YYYY MM DD. Use bible -h for help.")
-
-    index = (dt - start_date).days
+    index = (args.date - start_date).days
 
     try:
-        print_reading(dt, data[index])
+        print_reading(args.date, data[index])
     except IndexError:
         exit("Date out of range. Use format YYYY MM DD. Use bible -h for help")
     exit()
